@@ -2,10 +2,10 @@
 
 A **Codex CLI skill** that helps you **scaffold, audit, and refactor** FastAPI services using **uv**, a clean **`src/` layout**, **versioned routers** (`/v1`, `/v2`), and **singleton external clients** under `src/services/clients`.
 
-✅ Opinionated, production-ready defaults
-✅ Minimal, essential English comments only
-✅ Built to keep endpoints thin and business logic in services
-✅ Designed for teams that want consistent project structure and quality gates
+[x] Opinionated, production-ready defaults
+[x] Minimal, essential English comments only
+[x] Built to keep endpoints thin and business logic in services
+[x] Designed for teams that want consistent project structure and quality gates
 
 ---
 
