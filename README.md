@@ -1,4 +1,4 @@
-# 🏗️ Fastapi Architect Skills
+# 🏗️ FastAPI Architect Skills
 
 A **Codex CLI skill** that helps you **scaffold, audit, and refactor** FastAPI services using **uv**, a clean **`src/` layout**, **versioned routers** (`/v1`, `/v2`), and **singleton external clients** under `src/services/clients`.
 
