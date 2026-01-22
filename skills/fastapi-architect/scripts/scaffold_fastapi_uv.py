@@ -59,9 +59,7 @@ def scaffold(
     }
 
     # Root files
-    pyproject_tmpl = (
-        "pyproject_with_httpx.tmpl" if with_http_client else "pyproject_no_clients.tmpl"
-    )
+    pyproject_tmpl = "pyproject_with_httpx.tmpl" if with_http_client else "pyproject_no_clients.tmpl"
     _write_file(
         base / "pyproject.toml",
         _apply_replacements(_read_template(templates / pyproject_tmpl), repl),
@@ -101,38 +99,26 @@ def scaffold(
 
     _write_file(
         base / "src" / "core" / "config.py",
-        _apply_replacements(
-            _read_template(templates / "src_core_config.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "src_core_config.py.tmpl"), repl),
         overwrite=overwrite,
     )
     _write_file(
         base / "src" / "core" / "log_config.py",
-        _apply_replacements(
-            _read_template(templates / "src_core_log_config.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "src_core_log_config.py.tmpl"), repl),
         overwrite=overwrite,
     )
     _write_file(
         base / "src" / "core" / "logger_func.py",
-        _apply_replacements(
-            _read_template(templates / "src_core_logger_func.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "src_core_logger_func.py.tmpl"), repl),
         overwrite=overwrite,
     )
     _write_file(
         base / "src" / "core" / "errors.py",
-        _apply_replacements(
-            _read_template(templates / "src_core_errors.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "src_core_errors.py.tmpl"), repl),
         overwrite=overwrite,
     )
 
-    deps_tmpl = (
-        "src_api_deps_with_httpx.py.tmpl"
-        if with_http_client
-        else "src_api_deps_no_clients.py.tmpl"
-    )
+    deps_tmpl = "src_api_deps_with_httpx.py.tmpl" if with_http_client else "src_api_deps_no_clients.py.tmpl"
     _write_file(
         base / "src" / "api" / "deps.py",
         _apply_replacements(_read_template(templates / deps_tmpl), repl),
@@ -140,24 +126,16 @@ def scaffold(
     )
     _write_file(
         base / "src" / "api" / "v1" / "router.py",
-        _apply_replacements(
-            _read_template(templates / "src_api_v1_router.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "src_api_v1_router.py.tmpl"), repl),
         overwrite=overwrite,
     )
     _write_file(
         base / "src" / "api" / "v1" / "endpoints" / "health.py",
-        _apply_replacements(
-            _read_template(templates / "src_api_v1_health.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "src_api_v1_health.py.tmpl"), repl),
         overwrite=overwrite,
     )
 
-    main_tmpl = (
-        "src_main_with_httpx.py.tmpl"
-        if with_http_client
-        else "src_main_no_clients.py.tmpl"
-    )
+    main_tmpl = "src_main_with_httpx.py.tmpl" if with_http_client else "src_main_no_clients.py.tmpl"
     _write_file(
         base / "src" / "main.py",
         _apply_replacements(_read_template(templates / main_tmpl), repl),
@@ -169,9 +147,7 @@ def scaffold(
         _touch_init(base / "src" / "services" / "clients")
         _write_file(
             base / "src" / "services" / "clients" / "httpx_client.py",
-            _apply_replacements(
-                _read_template(templates / "src_services_clients_httpx.py.tmpl"), repl
-            ),
+            _apply_replacements(_read_template(templates / "src_services_clients_httpx.py.tmpl"), repl),
             overwrite=overwrite,
         )
 
@@ -184,19 +160,9 @@ def scaffold(
     )
     _write_file(
         base / "tests" / "test_health.py",
-        _apply_replacements(
-            _read_template(templates / "tests_test_health.py.tmpl"), repl
-        ),
+        _apply_replacements(_read_template(templates / "tests_test_health.py.tmpl"), repl),
         overwrite=overwrite,
     )
-
-    print(f"Scaffold complete: {base}")
-    print("Next steps:")
-    print(f"  cd {base}")
-    print("  uv sync")
-    print("  uv run task lint_fix")
-    print("  uv run task test")
-    print("  uv run uvicorn main:app --host 0.0.0.0 --port 8000 --app-dir src")
 
 
 def main() -> None:

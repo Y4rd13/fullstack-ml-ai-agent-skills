@@ -4,7 +4,6 @@ import argparse
 import re
 from pathlib import Path
 
-
 BASE_REQUIRED_PATHS = [
     "pyproject.toml",
     "src/main.py",
@@ -76,13 +75,9 @@ def _detect_client_usage(base: Path) -> bool:
             continue
         for p in root.rglob("*.py"):
             text = _read_text(p)
-            if re.search(
-                r"^\s*import\s+(" + "|".join(CLIENT_LIB_HINTS) + r")\b", text, re.M
-            ):
+            if re.search(r"^\s*import\s+(" + "|".join(CLIENT_LIB_HINTS) + r")\b", text, re.M):
                 return True
-            if re.search(
-                r"^\s*from\s+(" + "|".join(CLIENT_LIB_HINTS) + r")\b", text, re.M
-            ):
+            if re.search(r"^\s*from\s+(" + "|".join(CLIENT_LIB_HINTS) + r")\b", text, re.M):
                 return True
 
     return False
@@ -112,16 +107,12 @@ def _is_generic_router_name(expr: str) -> bool:
 def _client_singleton_heuristic(client_dir: Path) -> list[str]:
     findings: list[str] = []
     if not client_dir.exists():
-        findings.append(
-            "Missing src/services/clients directory (needed because client usage was detected)."
-        )
+        findings.append("Missing src/services/clients directory (needed because client usage was detected).")
         return findings
 
     py_files = list(client_dir.glob("*.py"))
     if not py_files:
-        findings.append(
-            "No client modules found under src/services/clients (expected singleton clients here)."
-        )
+        findings.append("No client modules found under src/services/clients (expected singleton clients here).")
         return findings
 
     for f in py_files:
@@ -141,9 +132,7 @@ def audit(project_dir: Path) -> str:
     report: list[str] = []
     report.append("# FastAPI Project Audit")
     report.append(f"Project: `{base}`")
-    report.append(
-        f"Inferred service name: `{service_name}` (suggested router alias: `{service_py}_router`)"
-    )
+    report.append(f"Inferred service name: `{service_name}` (suggested router alias: `{service_py}_router`)")
     report.append("")
 
     report.append("## 1) Required structure")
@@ -163,9 +152,7 @@ def audit(project_dir: Path) -> str:
     has_v1, has_tags, router_expr = _find_v1_include_router(main_text)
     if not has_v1:
         report.append("- Missing /v1 router include. Expected:")
-        report.append(
-            f'  `app.include_router({service_py}_router, prefix="/v1", tags=["{service_py}"])`'
-        )
+        report.append(f'  `app.include_router({service_py}_router, prefix="/v1", tags=["{service_py}"])`')
     else:
         report.append("- /v1 router include found.")
         if router_expr and _is_generic_router_name(router_expr):
@@ -173,23 +160,17 @@ def audit(project_dir: Path) -> str:
                 f"- Router variable name looks generic (`{router_expr}`). Consider aliasing to `{service_py}_router`."
             )
         if not has_tags:
-            report.append(
-                f'- Missing tags on /v1 include. Consider: `tags=["{service_py}"]`.'
-            )
+            report.append(f'- Missing tags on /v1 include. Consider: `tags=["{service_py}"]`.')
     report.append("")
 
     clients_used = _detect_client_usage(base)
 
     report.append("## 3) External clients (only if needed)")
     if not clients_used:
-        report.append(
-            "No client usage detected. Skipping clients requirements and checks."
-        )
+        report.append("No client usage detected. Skipping clients requirements and checks.")
     else:
         report.append("Client usage detected. Enforcing clients best practices.")
-        client_findings = _client_singleton_heuristic(
-            base / "src" / "services" / "clients"
-        )
+        client_findings = _client_singleton_heuristic(base / "src" / "services" / "clients")
         if client_findings:
             report.append("Findings:")
             for f in client_findings:
@@ -207,12 +188,8 @@ def audit(project_dir: Path) -> str:
         i += 1
 
     if not has_v1:
-        plan.append(
-            f"{i}. Update `src/main.py` to include `/v1` router with a project-relevant alias and tags."
-        )
-        plan.append(
-            f'   - Recommended: `app.include_router({service_py}_router, prefix="/v1", tags=["{service_py}"])`'
-        )
+        plan.append(f"{i}. Update `src/main.py` to include `/v1` router with a project-relevant alias and tags.")
+        plan.append(f'   - Recommended: `app.include_router({service_py}_router, prefix="/v1", tags=["{service_py}"])`')
         i += 1
     else:
         if router_expr and _is_generic_router_name(router_expr):
@@ -221,20 +198,17 @@ def audit(project_dir: Path) -> str:
             )
             i += 1
         if not has_tags:
-            plan.append(
-                f'{i}. Add tags to the /v1 include (e.g., `tags=["{service_py}"]`).'
-            )
+            plan.append(f'{i}. Add tags to the /v1 include (e.g., `tags=["{service_py}"]`).')
             i += 1
 
     if clients_used:
         plan.append(
-            f"{i}. Ensure all external clients live in `src/services/clients/` and are implemented as singletons (e.g., `@lru_cache`)."
+            f"{i}. Ensure all external clients live in `src/services/clients/` and are implemented as singletons "
+            "(e.g., `@lru_cache`)."
         )
         i += 1
 
-    plan.append(
-        f"{i}. Run quality gates: `uv run task lint_fix` then `uv run task test`."
-    )
+    plan.append(f"{i}. Run quality gates: `uv run task lint_fix` then `uv run task test`.")
     report.extend(plan)
     report.append("")
 
@@ -244,8 +218,7 @@ def audit(project_dir: Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-dir", required=True)
-    args = parser.parse_args()
-    print(audit(Path(args.project_dir)))
+    parser.parse_args()
 
 
 if __name__ == "__main__":
