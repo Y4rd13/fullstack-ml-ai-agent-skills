@@ -59,12 +59,34 @@ def scaffold(
     }
 
     # Root files
-    pyproject_tmpl = "pyproject_with_httpx.tmpl" if with_http_client else "pyproject_no_clients.tmpl"
-    _write_file(base / "pyproject.toml", _apply_replacements(_read_template(templates / pyproject_tmpl), repl), overwrite=overwrite)
-    _write_file(base / ".python-version", _apply_replacements(_read_template(templates / "python-version.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "Dockerfile", _apply_replacements(_read_template(templates / "Dockerfile.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "README.md", _apply_replacements(_read_template(templates / "README.md.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / ".env.example", _apply_replacements(_read_template(templates / "env.example.tmpl"), repl), overwrite=overwrite)
+    pyproject_tmpl = (
+        "pyproject_with_httpx.tmpl" if with_http_client else "pyproject_no_clients.tmpl"
+    )
+    _write_file(
+        base / "pyproject.toml",
+        _apply_replacements(_read_template(templates / pyproject_tmpl), repl),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / ".python-version",
+        _apply_replacements(_read_template(templates / "python-version.tmpl"), repl),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "Dockerfile",
+        _apply_replacements(_read_template(templates / "Dockerfile.tmpl"), repl),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "README.md",
+        _apply_replacements(_read_template(templates / "README.md.tmpl"), repl),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / ".env.example",
+        _apply_replacements(_read_template(templates / "env.example.tmpl"), repl),
+        overwrite=overwrite,
+    )
 
     # src structure
     _touch_init(base / "src")
@@ -77,32 +99,96 @@ def scaffold(
     _touch_init(base / "src" / "services")
     _touch_init(base / "src" / "utils")
 
-    _write_file(base / "src" / "core" / "config.py", _apply_replacements(_read_template(templates / "src_core_config.py.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "src" / "core" / "log_config.py", _apply_replacements(_read_template(templates / "src_core_log_config.py.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "src" / "core" / "logger_func.py", _apply_replacements(_read_template(templates / "src_core_logger_func.py.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "src" / "core" / "errors.py", _apply_replacements(_read_template(templates / "src_core_errors.py.tmpl"), repl), overwrite=overwrite)
+    _write_file(
+        base / "src" / "core" / "config.py",
+        _apply_replacements(
+            _read_template(templates / "src_core_config.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "src" / "core" / "log_config.py",
+        _apply_replacements(
+            _read_template(templates / "src_core_log_config.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "src" / "core" / "logger_func.py",
+        _apply_replacements(
+            _read_template(templates / "src_core_logger_func.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "src" / "core" / "errors.py",
+        _apply_replacements(
+            _read_template(templates / "src_core_errors.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
 
-    deps_tmpl = "src_api_deps_with_httpx.py.tmpl" if with_http_client else "src_api_deps_no_clients.py.tmpl"
-    _write_file(base / "src" / "api" / "deps.py", _apply_replacements(_read_template(templates / deps_tmpl), repl), overwrite=overwrite)
-    _write_file(base / "src" / "api" / "v1" / "router.py", _apply_replacements(_read_template(templates / "src_api_v1_router.py.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "src" / "api" / "v1" / "endpoints" / "health.py", _apply_replacements(_read_template(templates / "src_api_v1_health.py.tmpl"), repl), overwrite=overwrite)
+    deps_tmpl = (
+        "src_api_deps_with_httpx.py.tmpl"
+        if with_http_client
+        else "src_api_deps_no_clients.py.tmpl"
+    )
+    _write_file(
+        base / "src" / "api" / "deps.py",
+        _apply_replacements(_read_template(templates / deps_tmpl), repl),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "src" / "api" / "v1" / "router.py",
+        _apply_replacements(
+            _read_template(templates / "src_api_v1_router.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "src" / "api" / "v1" / "endpoints" / "health.py",
+        _apply_replacements(
+            _read_template(templates / "src_api_v1_health.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
 
-    main_tmpl = "src_main_with_httpx.py.tmpl" if with_http_client else "src_main_no_clients.py.tmpl"
-    _write_file(base / "src" / "main.py", _apply_replacements(_read_template(templates / main_tmpl), repl), overwrite=overwrite)
+    main_tmpl = (
+        "src_main_with_httpx.py.tmpl"
+        if with_http_client
+        else "src_main_no_clients.py.tmpl"
+    )
+    _write_file(
+        base / "src" / "main.py",
+        _apply_replacements(_read_template(templates / main_tmpl), repl),
+        overwrite=overwrite,
+    )
 
     # Optional clients
     if with_http_client:
         _touch_init(base / "src" / "services" / "clients")
         _write_file(
             base / "src" / "services" / "clients" / "httpx_client.py",
-            _apply_replacements(_read_template(templates / "src_services_clients_httpx.py.tmpl"), repl),
+            _apply_replacements(
+                _read_template(templates / "src_services_clients_httpx.py.tmpl"), repl
+            ),
             overwrite=overwrite,
         )
 
     # tests
     _touch_init(base / "tests")
-    _write_file(base / "tests" / "conftest.py", _apply_replacements(_read_template(templates / "tests_conftest.py.tmpl"), repl), overwrite=overwrite)
-    _write_file(base / "tests" / "test_health.py", _apply_replacements(_read_template(templates / "tests_test_health.py.tmpl"), repl), overwrite=overwrite)
+    _write_file(
+        base / "tests" / "conftest.py",
+        _apply_replacements(_read_template(templates / "tests_conftest.py.tmpl"), repl),
+        overwrite=overwrite,
+    )
+    _write_file(
+        base / "tests" / "test_health.py",
+        _apply_replacements(
+            _read_template(templates / "tests_test_health.py.tmpl"), repl
+        ),
+        overwrite=overwrite,
+    )
 
     print(f"Scaffold complete: {base}")
     print("Next steps:")
@@ -110,7 +196,7 @@ def scaffold(
     print("  uv sync")
     print("  uv run task lint_fix")
     print("  uv run task test")
-    print('  uv run uvicorn main:app --host 0.0.0.0 --port 8000 --app-dir src')
+    print("  uv run uvicorn main:app --host 0.0.0.0 --port 8000 --app-dir src")
 
 
 def main() -> None:
@@ -120,7 +206,11 @@ def main() -> None:
     parser.add_argument("--app-title", required=True)
     parser.add_argument("--python-version", default="3.14.2")
     parser.add_argument("--overwrite", action="store_true")
-    parser.add_argument("--with-http-client", action="store_true", help="Create src/services/clients/httpx_client.py and wire it via lifespan.")
+    parser.add_argument(
+        "--with-http-client",
+        action="store_true",
+        help="Create src/services/clients/httpx_client.py and wire it via lifespan.",
+    )
     args = parser.parse_args()
 
     scaffold(
