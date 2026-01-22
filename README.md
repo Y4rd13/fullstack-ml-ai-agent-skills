@@ -1,6 +1,6 @@
 # 🧠 Fullstack ML/AI Agent Skills
 
-A **multi-skill repository** for **Codex CLI** and **Claude Code**: reusable, task-focused “agent skills” that package **instructions**, **optional scripts**, and **supporting assets** so an agent can follow repeatable workflows reliably.
+A **multi-skill repository** for **Codex CLI** and **Claude Code**: reusable, task-focused “agent skills” that package **instructions**, **optional scripts**, and **supporting assets** so an agent can follow repeatable workflows reliably. :contentReference[oaicite:0]{index=0}
 
 ---
 
