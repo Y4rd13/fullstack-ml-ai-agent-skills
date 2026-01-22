@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Validate skills (SKILL.md + frontmatter)
+        run: |
+          set -euo pipefail
+          test -d skills
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          from pathlib import Path
+
+          def parse_frontmatter(text: str) -> dict[str, str]:
+              lines = text.splitlines()
+              if not lines or lines[0].strip() != "---":
+                  return {}
+              try:
+                  end = lines.index("---", 1)
+              except ValueError:
+                  return {}
+              fm_lines = lines[1:end]
+              out: dict[str, str] = {}
+              for line in fm_lines:
+                  if ":" not in line:
+                      continue
+                  k, v = line.split(":", 1)
+                  out[k.strip()] = v.strip().strip('"').strip("'")
+              return out
+
+          skills_dir = Path("skills")
+          skill_dirs = [p for p in skills_dir.iterdir() if p.is_dir()]
+
+          if not skill_dirs:
+              raise SystemExit("No skills found under ./skills")
+
+          errors: list[str] = []
+          for d in sorted(skill_dirs):
+              skill_md = d / "SKILL.md"
+              if not skill_md.exists():
+                  errors.append(f"Missing SKILL.md: {skill_md}")
+                  continue
+              fm = parse_frontmatter(skill_md.read_text(encoding="utf-8"))
+              if not fm.get("name"):
+                  errors.append(f"Missing frontmatter 'name' in {skill_md}")
+              if not fm.get("description"):
+                  errors.append(f"Missing frontmatter 'description' in {skill_md}")
+
+          if errors:
+              raise SystemExit("Skill validation failed:\n- " + "\n- ".join(errors))
+
+          print(f"OK: validated {len(skill_dirs)} skill(s).")
+          PY
+
+      - name: Ruff (format + lint)
+        run: |
+          set -euo pipefail
+          uv tool run ruff format --check .
+          uv tool run ruff check .
+
+      - name: Python compile check
+        run: |
+          set -euo pipefail
+          python -m compileall -q skills scripts
