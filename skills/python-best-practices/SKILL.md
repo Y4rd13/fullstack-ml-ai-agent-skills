@@ -62,7 +62,7 @@ Required:
 - `uv run task lint`
 - `uv run task test`
 
-If missing, add tasks using the provided template (`assets/pyproject.toml.tmpl`).
+If missing, add tasks using the provided template (`assets/templates/pyproject.toml.tmpl`).
 
 ### 5) OOP and data modeling
 Use classes intentionally:
