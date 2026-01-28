@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
 
-
 # --------------------------------------------------------------------------------------
 # Skill paths (stable even when installed under ~/.codex/skills)
 # --------------------------------------------------------------------------------------
@@ -75,7 +74,7 @@ class CodebookConfig:
     notes: str | None = None
 
     @staticmethod
-    def default() -> "CodebookConfig":
+    def default() -> CodebookConfig:
         return CodebookConfig(
             version=1,
             ignore_globs_extra=[],
