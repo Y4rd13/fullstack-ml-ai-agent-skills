@@ -5,22 +5,24 @@
 From the repository root:
 
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --repo-root "$PWD"
 ```
 
 Or from the skill directory:
 
 ```bash
 cd skills/repo-codebook-generator
-python scripts/generate_repo_codebook.py
+uv run python scripts/generate_repo_codebook.py --repo-root "$PWD"
 ```
 
 ### Requirements
 - `git`
+- `uv`
 - `tree` (recommended; the script falls back to `find` if `tree` is missing)
 
 ### Output
 - `docs/artifacts/repo_codebook.md`
+- `docs/artifacts/repo_codebook.config.json`
 
 ## Persistent ignore rules (recommended)
 
@@ -29,12 +31,12 @@ The generator maintains a stateful config file:
 
 ### Add extra ignore patterns
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py --add-ignore "data/**" --add-ignore "*.pdf"
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --add-ignore "data/**" --add-ignore "*.pdf" --repo-root "$PWD"
 ```
 
 ### Remove ignore patterns
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py --remove-ignore "*.pdf"
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --remove-ignore "*.pdf" --repo-root "$PWD"
 ```
 
 ### Notes

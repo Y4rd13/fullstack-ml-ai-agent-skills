@@ -29,20 +29,27 @@ The generator maintains a stateful config file so users can add more ignores wit
 - `skip_empty_files`: if true, empty/whitespace-only files are omitted from the code section.
 - `max_text_file_bytes`: maximum size for text files to include (bytes).
 
+## How to run (recommended)
+Run from the repository root you want to document:
+
+```bash
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --repo-root "$PWD"
+```
+
 ### Manage ignores (recommended)
 Add patterns:
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py --add-ignore "data/**" --add-ignore "*.pdf"
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --repo-root "$PWD" --add-ignore "data/**" --add-ignore "*.pdf"
 ```
 
 Remove patterns:
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py --remove-ignore "*.pdf"
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --repo-root "$PWD" --remove-ignore "*.pdf"
 ```
 
 Update config only (no generation):
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py --config-only --add-ignore "out/**"
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --repo-root "$PWD"  --config-only --add-ignore "out/**"
 ```
 
 ## What counts as "generated/build/runtime artifacts"
@@ -125,7 +132,7 @@ The document must contain:
 ## How to run (recommended)
 Generate the codebook:
 ```bash
-python skills/repo-codebook-generator/scripts/generate_repo_codebook.py
+uv run python ~/.codex/skills/repo-codebook-generator/scripts/generate_repo_codebook.py --repo-root "$PWD"
 ```
 
 This will:
