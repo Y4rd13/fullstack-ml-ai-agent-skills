@@ -1,35 +1,37 @@
 # Ignore patterns notes
 
-This skill excludes two categories of paths:
+This skill excludes paths using three layers:
 
 ## 1) Git-ignored content
-- The tree output uses: `tree --gitignore`
-- The file enumeration uses: `git ls-files -co --exclude-standard`
+- Tree output: `tree --gitignore`
+- File enumeration: `git ls-files -co --exclude-standard`
 
-This ensures files ignored by `.gitignore` and other standard ignore sources are excluded.
+This ensures `.gitignore` (and standard git ignore sources) are respected.
 
-## 2) Additional "generated/build/runtime artifacts" noise
-Beyond `.gitignore`, the skill applies an extra exclude list (via `tree -I` and post-filtering):
-- .env files: `.env`, `.env.*`
-- Virtual envs: `.venv`
-- Caches: `__pycache__`, `.mypy_cache`, `.ruff_cache`, `.pytest_cache`
-- Packaging artifacts: `*.egg-info`
-- Coverage artifacts: `.coverage`, `htmlcov`
-- Repo metadata: `.git`
-- Lockfiles and tool markers: `uv.lock`, `.python-version`
-- Ignore specs themselves: `.gitignore`, `.dockerignore`
-- Tests (requested exclusion): `tests/`
-- Generated artifact output: `docs/artifacts/` (prevents self-inclusion recursion)
+## 2) Built-in "generated/build/runtime artifacts" exclusions
+These are excluded even if not in `.gitignore`:
+- `.env`, `.env.*`
+- `.venv`
+- caches: `__pycache__`, `.mypy_cache`, `.ruff_cache`, `.pytest_cache`
+- packaging: `*.egg-info`
+- coverage: `.coverage`, `htmlcov`
+- repo metadata: `.git`
+- tool markers: `uv.lock`, `.python-version`, `.dockerignore`, `.gitignore`
+- tests (requested exclusion): `tests/`
+- output artifacts: `docs/artifacts/` (prevents self-inclusion recursion)
+
+## 3) User-configurable excludes (persistent)
+The generator reads an optional config file:
+- `docs/artifacts/repo_codebook.config.json`
+
+You can add more patterns under:
+- `ignore_globs_extra`: list[str]
+
+These extra patterns are applied to:
+- code file enumeration and inclusion checks
+- tree generation (best-effort; patterns are converted to a `tree -I` expression)
 
 ## Empty files
-- Empty (or whitespace-only) text files are noted as `skipped (empty file)` and are not included in the code section.
-
-## Tree fallback
-- If `tree` is not available, the generator falls back to a `find`-based listing (best-effort).
-- In fallback mode, `.gitignore` semantics may not be fully replicated; the file list still relies on Git when available.
-
-Notes:
-- The exact patterns are defined in:
-  - `scripts/get_tree.sh` (tree ignore pattern)
-  - `scripts/generate_repo_codebook.py` (EXCLUDE_GLOBS / exclude logic)
-- If you want to include tests, remove `tests` from both ignore lists.
+Empty (or whitespace-only) text files are:
+- described as `skipped (empty file)`
+- omitted from the code section
