@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import re
 import shutil
 import subprocess
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, replace
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -17,13 +19,12 @@ _THIS_FILE = Path(__file__).resolve()
 _SCRIPTS_DIR = _THIS_FILE.parent
 _SKILL_ROOT = _SCRIPTS_DIR.parent  # repo-codebook-generator/
 
-
 # --------------------------------------------------------------------------------------
 # Template / scripts owned by the skill
 # --------------------------------------------------------------------------------------
 TEMPLATE_PATH = _SKILL_ROOT / "assets/templates/repo_codebook.md.tmpl"
+TEMPLATE_CONFIG_PATH = _SKILL_ROOT / "assets/templates/repo_codebook.config.json.tmpl"
 TREE_SCRIPT = _SKILL_ROOT / "scripts/get_tree.sh"
-
 
 # --------------------------------------------------------------------------------------
 # Built-in exclusions (in addition to .gitignore)
@@ -57,6 +58,9 @@ BUILTIN_EXCLUDE_GLOBS: set[str] = {
 DEFAULT_MAX_TEXT_FILE_BYTES = 512 * 1024  # 512 KB
 
 _VERSION_RE = re.compile(r"^- codebook_version:\s*([0-9]+)\.([0-9]+)\.([0-9]+)\s*$", re.MULTILINE)
+_SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+_GLOB_META_CHARS = set("*?[")  # minimal glob meta (fnmatch)
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -72,6 +76,7 @@ class CodebookConfig:
     skip_empty_files: bool
     max_text_file_bytes: int
     notes: str | None = None
+    codebook_version: str | None = None  # last generated codebook version (persisted)
 
     @staticmethod
     def default() -> CodebookConfig:
@@ -81,6 +86,7 @@ class CodebookConfig:
             skip_empty_files=True,
             max_text_file_bytes=DEFAULT_MAX_TEXT_FILE_BYTES,
             notes="Add patterns under ignore_globs_extra to exclude more paths.",
+            codebook_version=None,
         )
 
 
@@ -124,13 +130,57 @@ def _paths_for_repo(repo_root: Path) -> tuple[Path, Path]:
     return output_path, config_path
 
 
+def _save_config(config_path: Path, cfg: CodebookConfig) -> None:
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(
+            {
+                "version": cfg.version,
+                "codebook_version": cfg.codebook_version,
+                "ignore_globs_extra": cfg.ignore_globs_extra,
+                "skip_empty_files": cfg.skip_empty_files,
+                "max_text_file_bytes": cfg.max_text_file_bytes,
+                "notes": cfg.notes,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _bootstrap_config_from_template(config_path: Path) -> bool:
+    """
+    Create the config file from the skill template (preferred), if available.
+    Returns True if created from template.
+    """
+    if not TEMPLATE_CONFIG_PATH.exists():
+        return False
+
+    try:
+        raw = TEMPLATE_CONFIG_PATH.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except Exception:
+        return False
+
+    try:
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    except Exception:
+        return False
+
+    return True
+
+
 def _load_config(config_path: Path) -> CodebookConfig:
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
     if not config_path.exists():
-        cfg = CodebookConfig.default()
-        _save_config(config_path, cfg)
-        return cfg
+        created = _bootstrap_config_from_template(config_path)
+        if not created:
+            cfg = CodebookConfig.default()
+            _save_config(config_path, cfg)
+            return cfg
 
     try:
         data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -145,30 +195,66 @@ def _load_config(config_path: Path) -> CodebookConfig:
         skip_empty_files=bool(data.get("skip_empty_files", True)),
         max_text_file_bytes=int(data.get("max_text_file_bytes", DEFAULT_MAX_TEXT_FILE_BYTES)),
         notes=data.get("notes"),
+        codebook_version=data.get("codebook_version"),
     )
 
 
-def _save_config(config_path: Path, cfg: CodebookConfig) -> None:
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(
-        json.dumps(
-            {
-                "version": cfg.version,
-                "ignore_globs_extra": cfg.ignore_globs_extra,
-                "skip_empty_files": cfg.skip_empty_files,
-                "max_text_file_bytes": cfg.max_text_file_bytes,
-                "notes": cfg.notes,
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+def _has_glob_meta(pat: str) -> bool:
+    return any(ch in pat for ch in _GLOB_META_CHARS)
 
 
-def _merge_exclude_globs(cfg: CodebookConfig) -> set[str]:
-    extra = {_normalize_glob(p) for p in cfg.ignore_globs_extra if p and p.strip()}
-    return set(BUILTIN_EXCLUDE_GLOBS) | extra
+def _expand_ignore_pattern(repo_root: Path, pat: str) -> list[str]:
+    """
+    Expand directory-like patterns so they exclude:
+      - the directory itself (needed for os.walk dir pruning)
+      - all descendants (needed for file filtering)
+
+    Examples:
+      - "data"   -> ["data", "data/**"] (if data exists and is a dir)
+      - "data/"  -> ["data", "data/**"]
+      - "data/**"-> ["data", "data/**"]
+      - "data/*" -> ["data", "data/*"]
+    """
+    p = _normalize_glob(pat)
+    if not p:
+        return []
+
+    # Explicit directory globs: add base dir as well.
+    if p.endswith("/**"):
+        base = p[:-3].rstrip("/")
+        return [base, p] if base else [p]
+
+    if p.endswith("/*"):
+        base = p[:-2].rstrip("/")
+        return [base, p] if base else [p]
+
+    # Trailing slash => treat as directory.
+    if p.endswith("/"):
+        base = p.rstrip("/")
+        return [base, f"{base}/**"] if base else []
+
+    # No glob meta + existing directory => treat as directory.
+    if not _has_glob_meta(p):
+        abs_path = repo_root / p
+        if abs_path.exists() and abs_path.is_dir():
+            base = p.rstrip("/")
+            return [base, f"{base}/**"] if base else [p]
+
+    return [p]
+
+
+def _merge_exclude_globs(repo_root: Path, cfg: CodebookConfig) -> set[str]:
+    out: set[str] = set(BUILTIN_EXCLUDE_GLOBS)
+
+    for raw in cfg.ignore_globs_extra:
+        raw = raw.strip()
+        if not raw:
+            continue
+        for expanded in _expand_ignore_pattern(repo_root, raw):
+            if expanded:
+                out.add(expanded)
+
+    return out
 
 
 def _glob_to_tree_pattern(glob_pat: str) -> str:
@@ -176,6 +262,13 @@ def _glob_to_tree_pattern(glob_pat: str) -> str:
     p = _normalize_glob(glob_pat)
     if "|" in p:
         return ""
+
+    # Handle canonical directory globs.
+    if p.endswith("/**"):
+        base = p[:-3].rstrip("/")
+        if not base:
+            return ""
+        return f"{base}|{base}/*"
 
     p = p.replace("**", "*")
 
@@ -249,16 +342,39 @@ def _is_effectively_empty(abs_path: Path) -> bool:
     return txt.strip() == ""
 
 
-def _bump_patch_version(existing: str | None) -> str:
-    if not existing:
-        return "1.0.0"
+def _extract_codebook_version(existing_md: str | None) -> str | None:
+    if not existing_md:
+        return None
+    m = _VERSION_RE.search(existing_md)
+    if not m:
+        return None
+    return f"{m.group(1)}.{m.group(2)}.{m.group(3)}"
 
-    m = _VERSION_RE.search(existing)
+
+def _bump_patch_semver(ver: str) -> str:
+    m = _SEMVER_RE.match(ver.strip())
     if not m:
         return "1.0.0"
-
-    major, minor, patch = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    major, minor, patch = int(m.group(1)), int(m.group(2)), int(m.group(3))
     return f"{major}.{minor}.{patch + 1}"
+
+
+def _next_codebook_version(cfg: CodebookConfig, existing_md: str | None) -> str:
+    """
+    Version rules:
+    - If repo_codebook.md exists: parse its codebook_version and bump PATCH
+      (fallback to config.codebook_version if parsing fails)
+    - Else if config has codebook_version: bump PATCH from it
+    - Else: start at 1.0.0
+    """
+    if existing_md:
+        prev = _extract_codebook_version(existing_md) or cfg.codebook_version
+        return _bump_patch_semver(prev) if prev else "1.0.0"
+
+    if cfg.codebook_version:
+        return _bump_patch_semver(cfg.codebook_version)
+
+    return "1.0.0"
 
 
 def _project_info(repo_root: Path) -> ProjectInfo:
@@ -292,7 +408,7 @@ def _tree_output(repo_root: Path, cfg: CodebookConfig) -> str:
 
 
 def _find_output(repo_root: Path, cfg: CodebookConfig) -> str:
-    exclude_globs = _merge_exclude_globs(cfg)
+    exclude_globs = _merge_exclude_globs(repo_root, cfg)
 
     if shutil.which("find"):
         try:
@@ -333,7 +449,7 @@ def _find_output(repo_root: Path, cfg: CodebookConfig) -> str:
 
 
 def _file_list(repo_root: Path, cfg: CodebookConfig) -> list[Path]:
-    exclude_globs = _merge_exclude_globs(cfg)
+    exclude_globs = _merge_exclude_globs(repo_root, cfg)
 
     raw = _run(["git", "ls-files", "-co", "--exclude-standard"], cwd=repo_root)
     files = [Path(p) for p in raw.splitlines() if p.strip()]
@@ -403,18 +519,55 @@ def _render_code_blocks(repo_root: Path, paths: list[Path], *, cfg: CodebookConf
     return "\n".join(blocks).rstrip()
 
 
-def _apply_config_mutations(cfg: CodebookConfig, args: argparse.Namespace) -> CodebookConfig:
+def _canonicalize_ignore_entry(repo_root: Path, raw: str) -> str | None:
+    """
+    Canonicalization rules:
+    - If contains glob meta (* ? [), keep as-is (normalized)
+    - If ends with '/' OR exists as a directory, store as 'dir/**'
+    - Otherwise store as file path/literal path (normalized)
+    """
+    p = _normalize_glob(raw)
+    if not p:
+        return None
+
+    if _has_glob_meta(p):
+        return p
+
+    if p.endswith("/"):
+        base = p.rstrip("/")
+        return f"{base}/**" if base else None
+
+    abs_path = repo_root / p
+    if abs_path.exists() and abs_path.is_dir():
+        base = p.rstrip("/")
+        return f"{base}/**" if base else None
+
+    return p
+
+
+def _apply_config_mutations(cfg: CodebookConfig, args: argparse.Namespace, *, repo_root: Path) -> CodebookConfig:
     ignore = list(cfg.ignore_globs_extra)
 
     if args.add_ignore:
         for p in args.add_ignore:
-            p = _normalize_glob(p)
-            if p and p not in ignore:
-                ignore.append(p)
+            canon = _canonicalize_ignore_entry(repo_root, p)
+            if canon and canon not in ignore:
+                ignore.append(canon)
 
     if args.remove_ignore:
-        remove = {_normalize_glob(p) for p in args.remove_ignore}
-        ignore = [p for p in ignore if p not in remove]
+        remove_raw = {_normalize_glob(p) for p in args.remove_ignore}
+        # Remove both exact entries and "dir/**" if user passes "dir" and vice versa.
+        remove: set[str] = set()
+        for r in remove_raw:
+            if not r:
+                continue
+            remove.add(r)
+            if r.endswith("/**"):
+                remove.add(r[:-3].rstrip("/"))
+            else:
+                remove.add(f"{r.rstrip('/')}/**")
+
+        ignore = [p for p in ignore if _normalize_glob(p) not in remove]
 
     max_bytes = cfg.max_text_file_bytes
     if args.max_text_file_bytes is not None:
@@ -430,10 +583,115 @@ def _apply_config_mutations(cfg: CodebookConfig, args: argparse.Namespace) -> Co
         skip_empty_files=skip_empty,
         max_text_file_bytes=max_bytes,
         notes=cfg.notes,
+        codebook_version=cfg.codebook_version,
     )
 
 
+def _print_ignore_summary(cfg: CodebookConfig) -> None:
+    _LOGGER.info("")
+    _LOGGER.info("Repo Codebook Generator — Ignore Summary")
+    _LOGGER.info(
+        "- Layer 1: Respects .gitignore / standard git excludes (git ls-files --exclude-standard, tree --gitignore)"
+    )
+    _LOGGER.info("- Layer 2: Built-in excludes (skill hygiene)")
+    _LOGGER.info("  - components: %s", sorted(BUILTIN_EXCLUDE_COMPONENTS))
+    _LOGGER.info("  - globs: %s", sorted(BUILTIN_EXCLUDE_GLOBS))
+    _LOGGER.info(
+        "- Layer 3: Persistent config excludes (docs/artifacts/repo_codebook.config.json -> ignore_globs_extra)"
+    )
+    if cfg.ignore_globs_extra:
+        for p in cfg.ignore_globs_extra:
+            _LOGGER.info("  - %s", p)
+    else:
+        _LOGGER.info("  - (none)")
+
+
+def _prompt_choice(title: str, option1: str, option2: str) -> int:
+    _LOGGER.info("")
+    _LOGGER.info(title)
+    _LOGGER.info("1. %s", option1)
+    _LOGGER.info("2. %s", option2)
+    while True:
+        raw = input("> ").strip()
+        if raw in {"1", "2"}:
+            return int(raw)
+        _LOGGER.info("Please enter 1 or 2.")
+
+
+def _prompt_paths() -> list[str]:
+    _LOGGER.info("")
+    _LOGGER.info("Enter paths or glob patterns to ignore (one per line).")
+    _LOGGER.info("Notes:")
+    _LOGGER.info("- For folders that may not exist yet, add a trailing slash (e.g., 'build/').")
+    _LOGGER.info("- Globs are allowed (e.g., '*.pdf', 'data/**').")
+    _LOGGER.info("Press ENTER on an empty line to finish.")
+    _LOGGER.info("")
+    out: list[str] = []
+    while True:
+        line = input("> ").strip()
+        if not line:
+            break
+        out.append(line)
+    return out
+
+
+def _interactive_ignore_flow(repo_root: Path, config_path: Path, cfg: CodebookConfig) -> CodebookConfig:
+    """
+    Interactive pre-generation step:
+    - Show ignore summary
+    - Offer to add more ignores persistently
+    - Allow looping until user decides to generate
+    """
+    while True:
+        _print_ignore_summary(cfg)
+
+        first = _prompt_choice(
+            "Do you want to add more files/folders/patterns to ignore?",
+            "Yes, add ignore paths/patterns (persistent)",
+            "No, continue",
+        )
+        if first == 2:
+            return cfg
+
+        raw_entries = _prompt_paths()
+        added: list[str] = []
+        ignore = list(cfg.ignore_globs_extra)
+
+        for raw in raw_entries:
+            canon = _canonicalize_ignore_entry(repo_root, raw)
+            if not canon:
+                continue
+            if canon not in ignore:
+                ignore.append(canon)
+                added.append(canon)
+
+        if added:
+            cfg = replace(cfg, ignore_globs_extra=ignore)
+            _save_config(config_path, cfg)
+            _LOGGER.info("")
+            _LOGGER.info("Added the following entries to repo_codebook.config.json:")
+            for a in added:
+                _LOGGER.info("- %s", a)
+        else:
+            _LOGGER.info("")
+            _LOGGER.info("No new ignore entries were added.")
+
+        _LOGGER.info("")
+        _LOGGER.info("Current persistent ignore_globs_extra:")
+        for p in cfg.ignore_globs_extra:
+            _LOGGER.info("- %s", p)
+
+        nxt = _prompt_choice(
+            "Next step:",
+            "Generate repo_codebook.md now",
+            "Add more ignores",
+        )
+        if nxt == 1:
+            return cfg
+
+
 def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
     parser = argparse.ArgumentParser(description="Generate a versioned repository codebook artifact.")
     parser.add_argument(
         "--repo-root",
@@ -456,6 +714,11 @@ def main() -> int:
         action="store_true",
         help="Only update/save config (do not generate the codebook).",
     )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Do not prompt; generate immediately (useful for CI).",
+    )
     args = parser.parse_args()
 
     repo_root = _resolve_repo_root(args.repo_root)
@@ -464,15 +727,19 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     cfg = _load_config(config_path)
-    cfg2 = _apply_config_mutations(cfg, args)
+    cfg2 = _apply_config_mutations(cfg, args, repo_root=repo_root)
     if cfg2 != cfg:
         _save_config(config_path, cfg2)
 
     if args.config_only:
         return 0
 
-    existing = output_path.read_text(encoding="utf-8") if output_path.exists() else None
-    version = _bump_patch_version(existing)
+    # Interactive preflight (default when running in a TTY).
+    if (not args.non_interactive) and sys.stdin.isatty():
+        cfg2 = _interactive_ignore_flow(repo_root, config_path, cfg2)
+
+    existing_md = output_path.read_text(encoding="utf-8") if output_path.exists() else None
+    version = _next_codebook_version(cfg2, existing_md)
 
     info = _project_info(repo_root)
     tree_out = _tree_output(repo_root, cfg2)
@@ -488,6 +755,11 @@ def main() -> int:
     out = out.replace("__FILE_CODE_BLOCKS__", _render_code_blocks(repo_root, paths, cfg=cfg2))
 
     output_path.write_text(out + "\n", encoding="utf-8")
+
+    # Persist last generated codebook version in config.
+    cfg3 = replace(cfg2, codebook_version=version)
+    _save_config(config_path, cfg3)
+
     return 0
 
 
