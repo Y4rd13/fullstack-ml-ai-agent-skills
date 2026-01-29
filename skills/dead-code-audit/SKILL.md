@@ -10,10 +10,10 @@ SKILL INTENT
 - This skill performs an evidence-first dead-code audit for Python repositories and writes a reviewable report.
 - It also supports an optional “apply” phase where you remove ONLY items the user approves (via explicit IDs or by marking `x` in docs/audit/dead_code_progress.txt).
 
-IMPORTANT SKILL FORMAT NOTES
+SKILL FORMAT NOTES
 
-- This SKILL.md uses YAML frontmatter (`name`, `description`) as required by Codex skills. :contentReference[oaicite:3]{index=3}
-- Codex injects only the skill’s name/description/path by default; the instruction body is injected only when explicitly invoked. :contentReference[oaicite:4]{index=4}
+- This SKILL.md uses YAML front matter (`name`, `description`) as required by Codex skills. :contentReference[oaicite:1]{index=1}
+- Codex injects only the skill’s name/description/path by default; the instruction body is injected only when explicitly invoked. :contentReference[oaicite:2]{index=2}
 
 WHERE TO WRITE OUTPUTS (MANDATORY)
 Write ALL audit artifacts under:
@@ -36,14 +36,42 @@ UV REQUIREMENT
 
 == MODES ==
 A) AUDIT MODE (default)
-Trigger when user asks for:
-
-- “dead code audit”, “repo hygiene audit”, “unused code”, “unused deps”, “audit dead code”, etc.
-
 B) APPLY MODE (explicit)
-Trigger when user asks for:
 
-- “apply”, “remove”, “delete”, “cleanup”, “prune”, “Remove: DR-001, …”, or “apply from progress”.
+---
+
+## NEW: REPO TYPE DETECTION (PUBLISHED LIBRARY HEURISTIC)
+
+Goal: avoid breaking public API surfaces in publishable/distributed libraries.
+
+Define a boolean: PUBLISHED_LIBRARY
+
+Set PUBLISHED_LIBRARY=true if at least TWO of the following signals are present:
+
+1. pyproject.toml has [project] with name AND (version OR dynamic version) AND a build-system backend (setuptools/hatchling/poetry/pdm).
+2. README mentions "pip install" OR "PyPI" OR contains a pypi.org link.
+3. CI/workflows mention publish/release (e.g., "pypi", "twine", "publish", "release", "build wheel", "sdist").
+4. Project metadata suggests distribution: classifiers, keywords, project.urls, license fields, long_description/readme, etc.
+
+If uncertain, default to PUBLISHED_LIBRARY=true (conservative).
+
+---
+
+## NEW: API SURFACE SAFETY RULE (PROMOTE RE-EXPORTS)
+
+If PUBLISHED_LIBRARY=true:
+
+- ANY finding that is:
+  a) defined in any _**init**.py (package or subpackage), OR
+  b) only referenced via _**init**.py re-export (e.g., imported into **init**.py, listed in **all**, star exports),
+  MUST be classified as “Needs manual confirmation” (NOT “Safe removal”), even if it has zero in-repo call sites.
+- Rationale: it may be public API used by downstream consumers, not by this repo itself.
+- In the audit.md, explicitly note this rule in Methodology and in the per-item Recommendation include:
+  "Confirm downstream usage: search dependent repos / pip consumers / internal packages before removal."
+
+If PUBLISHED_LIBRARY=false:
+
+- You may classify re-export-only items as dead only with exceptionally strong evidence (still prefer “manual confirmation”).
 
 ---
 
@@ -52,17 +80,19 @@ Trigger when user asks for:
 0. Prep
 
 - Ensure docs/audit exists (create if needed).
-- Read README.md and pyproject.toml to find:
-  - entrypoints, scripts, tasks, console scripts, tool config
-  - test/coverage commands
-- Identify actual code roots dynamically (do not assume src/guardrail):
+- Read README.md and pyproject.toml to find entrypoints, tasks, scripts, console scripts.
+- Detect code roots dynamically (do not assume src/guardrail):
   - likely roots: src/, app/, packages/, services/, scripts/, tests/
-  - confirm by inspecting tree + pyproject config.
+- Run REPO TYPE DETECTION and set PUBLISHED_LIBRARY accordingly (document it in audit.md).
 
 1. Inventory
 
 - Enumerate top-level python packages/modules (and key subpackages).
-- Identify “public API boundaries” (re-exports via **init**.py, **all**, registries).
+- Identify public API boundaries:
+  - **init**.py re-exports
+  - **all**
+  - registries / plugin discovery
+- Identify leaf modules likely unused.
 
 2. Evidence-first reference mapping
 
@@ -71,13 +101,13 @@ Trigger when user asks for:
   - direct references (SymbolName)
   - module imports (import x / from x import y)
   - dynamic usage signals: importlib, getattr, registry patterns, plugin discovery, **all**, side-effect imports
-- If dynamic usage is plausible, classify as “Needs manual confirmation” (NOT dead).
+- Apply the API SURFACE SAFETY RULE when PUBLISHED_LIBRARY=true.
 
 3. Runtime signals (uv)
 
 - Discover the correct uv commands from pyproject (tasks).
 - Run the test suite with uv (and coverage if available).
-- Capture pass/fail and note low-coverage modules (low coverage can mask dead code).
+- Capture pass/fail and note low-coverage modules.
 
 4. Dependency hygiene
 
