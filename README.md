@@ -8,10 +8,12 @@ A **multi-skill repository** for **Codex CLI** and **Claude Code**: reusable, ta
 
 Each skill is a self-contained, task-focused workflow that instructs agents how to act in a specific domain.
 
+* **dead-code-audit**: Evidence-first dead-code + dependency hygiene audit for Python repos with reviewable `docs/audit/` artifacts.
 * **fastapi-architect**: Scaffolds, reviews, or refactors FastAPI services using uv, a `src/` layout, versioned routers, and optional singleton external clients.
-* **python-best-practices**: Applies production-grade Python standards for `src/` structure, typing, docs, tests, uv+taskipy+ruff tooling, CI gates, security, and performance.
+* **minimal-tests-audit**: Proposes minimal, strictly-necessary tests with audit/progress files and an optional apply phase.
 * **mlops-blueprints**: Generates MLOps blueprints and operational patterns for ML systems.
 * **llm-evals-toolkit**: Builds LLM evaluation workflows and experiment hygiene guidance.
+* **python-best-practices**: Applies production-grade Python standards for `src/` structure, typing, docs, tests, uv+taskipy+ruff tooling, CI gates, security, and performance.
 * **repo-codebook-generator**: Produces a versioned repository codebook artifact (structure, one-line file descriptions, and full source) while respecting `.gitignore` and excluding non-source artifacts.
 
 ## 🧱 Skill structure
@@ -21,11 +23,18 @@ This repository is organized as a **skill catalog** under `./skills/`, where eac
 ```text
 fullstack-ml-ai-agent-skills/
 └─ skills/
+   ├─ dead-code-audit/
+   │  ├─ SKILL.md
+   │  ├─ scripts/
+   │  ├─ assets/
+   │  └─ references/
    ├─ fastapi-architect/
    │  ├─ SKILL.md
    │  ├─ scripts/
    │  ├─ assets/         
    │  └─ references/     
+   ├─ mlops-blueprints/
+   │  └─ SKILL.md
    ├─ python-best-practices/
    │  └─ SKILL.md
    ├─ repo-codebook-generator/
@@ -33,10 +42,13 @@ fullstack-ml-ai-agent-skills/
    │  ├─ scripts/
    │  ├─ assets/
    │  └─ references/
-   ├─ mlops-blueprints/
+   ├─ llm-evals-toolkit/
    │  └─ SKILL.md
-   └─ llm-evals-toolkit/
-      └─ SKILL.md
+   └─ minimal-tests-audit/
+      ├─ SKILL.md
+      ├─ scripts/
+      ├─ assets/
+      └─ references/
 ```
 
 ---
@@ -54,6 +66,7 @@ fullstack-ml-ai-agent-skills/
 
 * **Backend / APIs** (FastAPI, service architecture, versioning, conventions)
 * **Python engineering** (project structure, style, maintainability)
+* **Code quality / audits** (dead code, minimal tests, dependency hygiene)
 * **MLOps** (blueprints, operational patterns, deployment-oriented practices)
 * **LLM evaluation** (evaluation workflows, judge patterns, experiment hygiene)
 
@@ -65,6 +78,7 @@ fullstack-ml-ai-agent-skills/
 * **Open standard** skill format for portability across tools
 * **Progressive disclosure**: instructions + references/assets/scripts loaded only when needed (tool-dependent)
 * **Composable**: skills can be used alone or combined (e.g., FastAPI + Python best practices)
+* **Approval gates**: audit workflows can include progress files for explicit user approval
 
 ---
 
@@ -101,6 +115,12 @@ ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/fastapi-architect ~/.codex
 
 ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/python-best-practices ~/.codex/skills/python-best-practices
 
+ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/dead-code-audit ~/.codex/skills/dead-code-audit
+
+ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/minimal-tests-audit ~/.codex/skills/minimal-tests-audit
+
+ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/repo-codebook-generator ~/.codex/skills/repo-codebook-generator
+
 ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/mlops-blueprints ~/.codex/skills/mlops-blueprints
 
 ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/llm-evals-toolkit ~/.codex/skills/llm-evals-toolkit
@@ -118,6 +138,12 @@ mkdir -p ~/.claude/skills
 ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/fastapi-architect ~/.claude/skills/fastapi-architect
 
 ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/python-best-practices ~/.claude/skills/python-best-practices
+
+ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/dead-code-audit ~/.claude/skills/dead-code-audit
+
+ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/minimal-tests-audit ~/.claude/skills/minimal-tests-audit
+
+ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/repo-codebook-generator ~/.claude/skills/repo-codebook-generator
 
 ln -s ~/my-skills/fullstack-ml-ai-agent-skills/skills/mlops-blueprints ~/.claude/skills/mlops-blueprints
 
@@ -140,6 +166,14 @@ $fastapi-architect scaffold a new FastAPI service with src/ layout and versioned
 
 ```text
 $python-best-practices review this module for maintainability and propose refactors
+```
+
+```text
+$dead-code-audit run a dead code and dependency hygiene audit for this repo
+```
+
+```text
+$minimal-tests-audit propose the minimal tests needed for coverage
 ```
 
 ### Claude Code
