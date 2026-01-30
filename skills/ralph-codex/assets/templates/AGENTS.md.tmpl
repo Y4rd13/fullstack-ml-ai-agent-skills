@@ -1,0 +1,36 @@
+# Ralph Agent Instructions
+
+## Overview
+
+Ralph is an autonomous AI agent loop that runs AI coding tools (Amp, CODEX Code, or Codex CLI) repeatedly until all PRD items are complete. Each iteration is a fresh instance with clean context.
+
+## Commands
+
+```bash
+# Run Ralph with Amp (default)
+./ralph.sh [max_iterations]
+
+# Run Ralph with CODEX Code
+./ralph.sh --tool CODEX [max_iterations]
+
+# Run Ralph with Codex CLI
+./ralph.sh --tool codex [max_iterations]
+
+# Optional: enable fully autonomous/no-approval mode for Codex CLI
+# (equivalent to --yolo / --dangerously-bypass-approvals-and-sandbox)
+RALPH_CODEX_YOLO=1 ./ralph.sh --tool codex [max_iterations]
+```
+
+## Key Files
+
+- `ralph.sh` - The bash loop that spawns fresh AI instances (supports `--tool amp`, `--tool CODEX`, or `--tool codex`)
+- `prompt.md` - Instructions given to each Amp/Codex instance
+- `CODEX.md` - Instructions given to each CODEX Code instance
+- `prd.json.example` - Example PRD format
+
+## Patterns
+
+- Each iteration spawns a fresh AI instance with clean context
+- Memory persists via git history, `progress.txt`, and `prd.json`
+- Stories should be small enough to complete in one context window
+- Always update AGENTS.md with discovered patterns for future iterations
