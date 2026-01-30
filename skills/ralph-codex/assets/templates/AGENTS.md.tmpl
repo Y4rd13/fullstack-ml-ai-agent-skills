@@ -1,0 +1,55 @@
+\
+# AGENTS.md
+
+## Overview
+
+This repository supports an autonomous “Ralph” loop driven by **Codex CLI**.
+Each iteration is a fresh agent session with no memory beyond what is stored on disk.
+
+**Memory persists via:**
+- `prd.json` (the backlog + pass/fail flags)
+- `progress.txt` (append-only log + consolidated patterns)
+- git history
+
+## How to run Ralph
+
+```bash
+chmod +x ./ralph.sh
+./ralph.sh 10
+```
+
+### Options
+
+- Tool:
+  - `./ralph.sh --tool codex 10` (default)
+  - `./ralph.sh --tool amp 10`
+  - `./ralph.sh --tool claude 10`
+
+- Mode:
+  - `./ralph.sh --mode full-auto 10` (default; safer)
+  - `./ralph.sh --mode yolo 10` (dangerous; no sandbox/approvals)
+
+## Key files
+
+- `ralph.sh` — loop runner (spawns a new agent per iteration)
+- `prompt.md` — instructions given to the agent each iteration
+- `prd.json` — your PRD backlog (copy from `prd.json.example`)
+- `progress.txt` — append-only progress log + “Codebase Patterns”
+- `archive/` — archives previous runs on branch change
+- `.codex/rules/ralph.rules` — optional rules for commands outside the sandbox
+
+## Repository expectations (edit these)
+
+Add your project-specific commands here so the agent can reliably run checks.
+
+**Example (Python + uv):**
+- Lint/format: `uv run task lint_fix`
+- Tests: `uv run pytest -q`
+- Typecheck: `uv run mypy src`
+
+**Example (Node):**
+- Lint: `npm run lint`
+- Tests: `npm test`
+- Typecheck: `npm run typecheck`
+
+Keep this section updated — Ralph relies on it to keep CI green.

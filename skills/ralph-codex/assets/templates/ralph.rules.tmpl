@@ -1,0 +1,67 @@
+\
+# ralph.rules
+#
+# Codex scans `rules/` under Team Config locations. Repo-scoped location:
+# `.codex/rules/*.rules`
+#
+# These rules are additional guardrails for commands *outside* the sandbox.
+
+prefix_rule(
+    pattern=["sudo"],
+    decision="forbidden",
+    justification="Do not use sudo in agent runs. Adjust sandbox/permissions or run privileged commands manually.",
+    match=["sudo apt-get update", "sudo rm -rf /"],
+)
+
+prefix_rule(
+    pattern=["ssh"],
+    decision="forbidden",
+    justification="No remote shell access in agent runs.",
+    match=["ssh user@host", "ssh -i key.pem user@host"],
+)
+prefix_rule(
+    pattern=["scp"],
+    decision="forbidden",
+    justification="No file exfiltration via scp in agent runs.",
+    match=["scp file user@host:/tmp", "scp -r . user@host:/tmp"],
+)
+
+prefix_rule(
+    pattern=["curl"],
+    decision="prompt",
+    justification="Network fetches require approval. Prefer pinned package managers or checked-in artifacts.",
+    match=["curl -L https://example.com/file -o file"],
+)
+prefix_rule(
+    pattern=["wget"],
+    decision="prompt",
+    justification="Network fetches require approval. Prefer pinned package managers or checked-in artifacts.",
+    match=["wget https://example.com/file"],
+)
+
+prefix_rule(
+    pattern=["rm", "-rf"],
+    decision="forbidden",
+    justification="Destructive deletes are forbidden. Prefer removing specific, safe paths manually.",
+    match=["rm -rf /", "rm -rf .git"],
+)
+prefix_rule(
+    pattern=["rm"],
+    decision="prompt",
+    justification="Deletes require approval. Ensure you only delete intended files.",
+    match=["rm ./tmp.txt", "rm -r ./out"],
+    not_match=["git rm file.txt"],
+)
+
+prefix_rule(
+    pattern=["git", "push", "--force"],
+    decision="forbidden",
+    justification="Do not force-push in agent runs.",
+    match=["git push --force origin main"],
+)
+prefix_rule(
+    pattern=["git", "push", "-f"],
+    decision="forbidden",
+    justification="Do not force-push in agent runs.",
+    match=["git push -f origin main"],
+)

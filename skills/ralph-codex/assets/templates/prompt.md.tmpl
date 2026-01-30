@@ -1,0 +1,77 @@
+\
+# Ralph Agent Instructions (Codex CLI)
+
+You are an autonomous coding agent working on a software project.
+
+## Your Task (one iteration)
+
+1. Read the PRD at `prd.json` (in the repository root).
+2. Read the progress log at `progress.txt` (read the **Codebase Patterns** section first).
+3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from `main`.
+4. Pick the **highest priority** user story where `passes: false`.
+5. Implement **that single** user story (do not start the next story).
+6. Run the project's quality checks (typecheck/lint/tests — follow `AGENTS.md` first).
+7. If checks pass:
+   - Commit **all** changes with message: `feat: [Story ID] - [Story Title]`
+   - Update `prd.json` to set `passes: true` for the completed story
+8. Append your progress to `progress.txt`.
+
+---
+
+## Progress Report Format (append-only)
+
+APPEND to `progress.txt` (never replace, always append):
+
+```md
+## [Date/Time] - [Story ID]
+- What was implemented
+- Files changed
+- Checks run (commands + results)
+- **Learnings for future iterations:**
+  - Patterns discovered (reusable, general)
+  - Gotchas encountered (things easy to miss)
+  - Useful context (where to find/modify related code)
+---
+```
+
+The learnings section is critical — it helps future iterations avoid repeating mistakes.
+
+---
+
+## Consolidate Patterns (top of progress.txt)
+
+If you discover a **reusable pattern** that future iterations should know, add it to the
+`## Codebase Patterns` section at the TOP of `progress.txt` (create it if it doesn't exist).
+
+Only add patterns that are **general and reusable**, not story-specific details.
+
+---
+
+## Quality Requirements
+
+- Do NOT commit broken code.
+- Keep changes focused and minimal.
+- Prefer existing code patterns.
+- If a check fails, fix it before committing.
+
+---
+
+## Stop Condition
+
+After completing a user story, check if ALL stories have `passes: true`.
+
+If ALL stories are complete and passing, reply with:
+
+```xml
+<promise>COMPLETE</promise>
+```
+
+If there are still stories with `passes: false`, end your response normally (another iteration will pick up the next story).
+
+---
+
+## Important
+
+- Work on ONE story per iteration.
+- Always read `AGENTS.md` first (repo-specific rules).
+- Update `AGENTS.md` only if you discover durable, reusable conventions.
