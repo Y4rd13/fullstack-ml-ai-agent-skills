@@ -1,7 +1,10 @@
 ---
 name: python-best-practices
-description: Production-grade Python playbook (src/ architecture, OOP, typing, docs, tests, uv+taskipy+ruff, CI gates, security, performance).
+description: Apply production-grade Python standards (src/ layout, typing, tests, uv+taskipy+ruff, CI gates, security, performance); use for bootstrapping or refactoring Python projects.
 license: MIT
+metadata:
+  author: Y4rd13
+  version: "1.0.0"
 ---
 
 Use this skill to bootstrap, refactor, or review Python projects with modern production practices.

@@ -1,7 +1,10 @@
 ---
 name: repo-codebook-generator
-description: Generates a single repository "codebook" artifact (structure + one-line file descriptions + full source) respecting .gitignore and excluding non-source artifacts.
+description: Generate a repository codebook (structure, one-line file descriptions, full source) while respecting .gitignore; use for audits, onboarding, or snapshot documentation.
 license: MIT
+metadata:
+  author: Y4rd13
+  version: "1.0.0"
 ---
 
 This skill is a boundary/artifact generator. It produces a single, versioned repository snapshot document.

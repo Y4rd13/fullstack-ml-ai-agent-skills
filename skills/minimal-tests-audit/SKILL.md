@@ -1,6 +1,10 @@
 ---
 name: minimal-tests-audit
-description: Propose strictly-necessary unit tests with an audit (MD+JSON) in docs/audit/, let user approve via progress file, apply selected tests, then run uv tasks (lint_fix -> test -> coverage) ensuring tasks exist.
+description: Propose strictly-necessary tests with docs/audit/ artifacts and an approval workflow; use when you need minimal coverage and a controlled apply phase.
+license: MIT
+metadata:
+  author: Y4rd13
+  version: "1.0.0"
 ---
 
 You are Codex CLI running locally inside the user’s current repository.
