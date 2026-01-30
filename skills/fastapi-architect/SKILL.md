@@ -1,6 +1,10 @@
 ---
 name: fastapi-architect
-description: Scaffold, review, or refactor FastAPI services using uv, a src/ layout, versioned routers (/v1, /v2), and optional singleton external clients under src/services/clients when needed.
+description: Scaffold, review, or refactor FastAPI services using uv, a src/ layout, versioned routers, and optional singleton clients; use for new services or architecture cleanups.
+license: MIT
+metadata:
+  author: Y4rd13
+  version: "1.0.0"
 ---
 
 # FastAPI + uv Architect Skill

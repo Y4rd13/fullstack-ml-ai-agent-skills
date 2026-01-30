@@ -1,6 +1,10 @@
 ---
 name: ralph-codex
-description: Scaffold a Ralph-style autonomous agent loop (from snarktank/ralph) into a repo, adapted for OpenAI Codex CLI. Triggers on: ralph codex, scaffold ralph, autonomous loop, prd.json loop.
+description: Scaffold a Ralph-style autonomous agent loop (from snarktank/ralph) adapted for OpenAI Codex CLI; use for PRD-driven iterations (ralph loop, prd.json).
+license: MIT
+metadata:
+  author: Y4rd13
+  version: "1.0.0"
 user-invocable: true
 ---
 

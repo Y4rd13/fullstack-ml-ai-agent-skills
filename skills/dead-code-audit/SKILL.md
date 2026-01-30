@@ -1,6 +1,10 @@
 ---
 name: dead-code-audit
-description: Exhaustively audit any Python repo for dead code + dependency hygiene, write artifacts to docs/audit/, and optionally apply user-approved removals from docs/audit/dead_code_progress.txt.
+description: Exhaustively audit Python repos for dead code and dependency hygiene; use when you need evidence-backed removal candidates with docs/audit/ artifacts.
+license: MIT
+metadata:
+  author: Y4rd13
+  version: "1.0.0"
 ---
 
 You are Codex CLI running locally in the user’s current repository.
