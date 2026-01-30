@@ -1,55 +1,36 @@
-\
-# AGENTS.md
+# Ralph Agent Instructions
 
 ## Overview
 
-This repository supports an autonomous “Ralph” loop driven by **Codex CLI**.
-Each iteration is a fresh agent session with no memory beyond what is stored on disk.
+Ralph is an autonomous AI agent loop that runs AI coding tools (Amp, CODEX Code, or Codex CLI) repeatedly until all PRD items are complete. Each iteration is a fresh instance with clean context.
 
-**Memory persists via:**
-- `prd.json` (the backlog + pass/fail flags)
-- `progress.txt` (append-only log + consolidated patterns)
-- git history
-
-## How to run Ralph
+## Commands
 
 ```bash
-chmod +x ./ralph.sh
-./ralph.sh 10
+# Run Ralph with Amp (default)
+./ralph.sh [max_iterations]
+
+# Run Ralph with CODEX Code
+./ralph.sh --tool CODEX [max_iterations]
+
+# Run Ralph with Codex CLI
+./ralph.sh --tool codex [max_iterations]
+
+# Optional: enable fully autonomous/no-approval mode for Codex CLI
+# (equivalent to --yolo / --dangerously-bypass-approvals-and-sandbox)
+RALPH_CODEX_YOLO=1 ./ralph.sh --tool codex [max_iterations]
 ```
 
-### Options
+## Key Files
 
-- Tool:
-  - `./ralph.sh --tool codex 10` (default)
-  - `./ralph.sh --tool amp 10`
-  - `./ralph.sh --tool claude 10`
+- `ralph.sh` - The bash loop that spawns fresh AI instances (supports `--tool amp`, `--tool CODEX`, or `--tool codex`)
+- `prompt.md` - Instructions given to each Amp/Codex instance
+- `CODEX.md` - Instructions given to each CODEX Code instance
+- `prd.json.example` - Example PRD format
 
-- Mode:
-  - `./ralph.sh --mode full-auto 10` (default; safer)
-  - `./ralph.sh --mode yolo 10` (dangerous; no sandbox/approvals)
+## Patterns
 
-## Key files
-
-- `ralph.sh` — loop runner (spawns a new agent per iteration)
-- `prompt.md` — instructions given to the agent each iteration
-- `prd.json` — your PRD backlog (copy from `prd.json.example`)
-- `progress.txt` — append-only progress log + “Codebase Patterns”
-- `archive/` — archives previous runs on branch change
-- `.codex/rules/ralph.rules` — optional rules for commands outside the sandbox
-
-## Repository expectations (edit these)
-
-Add your project-specific commands here so the agent can reliably run checks.
-
-**Example (Python + uv):**
-- Lint/format: `uv run task lint_fix`
-- Tests: `uv run pytest -q`
-- Typecheck: `uv run mypy src`
-
-**Example (Node):**
-- Lint: `npm run lint`
-- Tests: `npm test`
-- Typecheck: `npm run typecheck`
-
-Keep this section updated — Ralph relies on it to keep CI green.
+- Each iteration spawns a fresh AI instance with clean context
+- Memory persists via git history, `progress.txt`, and `prd.json`
+- Stories should be small enough to complete in one context window
+- Always update AGENTS.md with discovered patterns for future iterations

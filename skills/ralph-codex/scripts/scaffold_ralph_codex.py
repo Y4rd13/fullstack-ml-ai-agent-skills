@@ -75,6 +75,7 @@ def main() -> int:
     templates = {
         "ralph.sh.tmpl": repo_root / "ralph.sh",
         "prompt.md.tmpl": repo_root / "prompt.md",
+        "CODEX.md.tmpl": repo_root / "CODEX.md",
         "AGENTS.md.tmpl": repo_root / "AGENTS.md",
         "progress.txt.tmpl": repo_root / "progress.txt",
         "prd.json.example.tmpl": repo_root / "prd.json.example",

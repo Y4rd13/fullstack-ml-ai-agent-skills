@@ -1,50 +1,31 @@
 ---
 name: ralph-codex
-description: Scaffold a Ralph-style autonomous loop for Codex CLI (ralph.sh + prd.json/progress + rules). Use when you want iterative 1-story-per-iteration coding.
+description: Scaffold a Ralph-style autonomous agent loop (from snarktank/ralph) into a repo, adapted for OpenAI Codex CLI. Triggers on: ralph codex, scaffold ralph, autonomous loop, prd.json loop.
 user-invocable: true
 ---
 
-# Ralph for Codex CLI
+# ralph-codex
 
-## The job
+## The Job
 
-1. Scaffold Ralph files into the current repository root:
+Scaffold the Ralph loop into an existing repo under `./ralph/`, including:
 
-- `ralph.sh`
-- `prompt.md`
-- `AGENTS.md`
-- `progress.txt`
-- `prd.json.example`
+- `ralph.sh`, `prompt.md`, `CODEX.md`, `prd.json.example`, `progress.txt`
 - `.codex/rules/ralph.rules`
 
-2. Do NOT implement product work. Only scaffold the loop and templates.
+## How to run
 
-## How to run (after scaffolding)
+After scaffolding:
 
-- Copy `prd.json.example` to `prd.json` and edit it.
-- Run:
-
-```bash
-chmod +x ./ralph.sh
-./ralph.sh 10
-```
-
-## Implementation instructions (do this now)
-
-Run the scaffold script from this skill:
+1. Copy `prd.json.example` → `prd.json` and fill in your stories.
+2. Run:
 
 ```bash
-uv run ~/.codex/skills/ralph-codex/scripts/scaffold_ralph_codex.py
+cd ralph
+./ralph.sh --tool codex 20
 ```
 
-If the user installed this skill repo-scoped instead, the path will be:
+## Notes
 
-```bash
-uv run .codex/skills/ralph-codex/scripts/scaffold_ralph_codex.py
-```
-
-## Output requirements
-
-- Keep diffs minimal
-- Do not add extra tooling
-- Ensure generated files match templates exactly
+- The loop is intentionally simple: one story per iteration, progress stored in `progress.txt`, completion signaled by `<promise>COMPLETE</promise>`.
+- Codex is invoked in non-interactive mode via `codex exec --full-auto` (see `ralph.sh`).
